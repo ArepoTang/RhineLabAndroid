@@ -4,16 +4,19 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -28,7 +31,7 @@ import androidx.webkit.WebViewClientCompat;
  * The web layer keeps every pixel of UI; the host only supplies what Wallpaper
  * Engine used to: a non-file origin, immersive system bars, a back gesture and
  * a second face for its five host callbacks (properties / audio / media / fps /
- * pause). Versions 1 ships the callbacks as defaults, so the page runs with
+ * pause). Version 1 ships those callbacks as defaults, so the page runs with
  * `rhineWallpaperHost = { properties: {}, fps: 30, paused: false }`.
  */
 public class MainActivity extends Activity {
@@ -60,7 +63,29 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Trace.init(this);
+        installCrashHandler();
+        Trace.log("onCreate begin, savedInstanceState=" + (savedInstanceState != null));
+        try {
+            build(savedInstanceState);
+            Trace.log("onCreate end");
+        } catch (Throwable error) {
+            Trace.crash(Thread.currentThread(), error);
+            showFailure(error);
+        }
+    }
+
+    private void installCrashHandler() {
+        final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+            Trace.crash(thread, error);
+            if (previous != null) previous.uncaughtException(thread, error);
+        });
+    }
+
+    private void build(Bundle savedInstanceState) {
         applyImmersiveMode();
+        Trace.log("immersive applied");
 
         web = new WebView(this);
         web.setBackgroundColor(PAPER);
@@ -83,10 +108,21 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        Trace.log("webview settings applied");
 
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
+        Trace.log("asset loader built");
+
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage message) {
+                Trace.log("console " + message.messageLevel() + " "
+                        + message.sourceId() + ":" + message.lineNumber() + " " + message.message());
+                return true;
+            }
+        });
 
         web.setWebViewClient(new WebViewClientCompat() {
             @Override
@@ -103,18 +139,37 @@ public class MainActivity extends Activity {
                 // Archive lore links belong in the browser, not inside the terminal.
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, url));
-                } catch (Exception ignored) {
+                } catch (Exception error) {
+                    Trace.log("external link failed: " + url + " " + error);
                 }
                 return true;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                Trace.log("page finished " + url);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request,
+                                        android.webkit.WebResourceError error) {
+                if (request.isForMainFrame()) {
+                    Trace.log("main frame error " + error.getErrorCode()
+                            + " " + error.getDescription() + " " + request.getUrl());
+                }
+            }
         });
+        Trace.log("client set");
 
         applyInsets();
         setContentView(web);
+        Trace.log("content view set");
 
         if (savedInstanceState == null) {
+            Trace.log("loadUrl " + START_URL);
             web.loadUrl(START_URL);
         } else {
+            Trace.log("restoreState");
             web.restoreState(savedInstanceState);
         }
     }
@@ -122,7 +177,6 @@ public class MainActivity extends Activity {
     private void applyImmersiveMode() {
         Window window = getWindow();
         window.setBackgroundDrawable(new ColorDrawable(PAPER));
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return;
         window.setDecorFitsSystemWindows(false);
         WindowInsetsController controller = window.getInsetsController();
         if (controller != null) {
@@ -148,10 +202,28 @@ public class MainActivity extends Activity {
         });
     }
 
+    /** Last resort: put the failure where it can actually be read on the device. */
+    private void showFailure(Throwable error) {
+        java.io.StringWriter buffer = new java.io.StringWriter();
+        error.printStackTrace(new java.io.PrintWriter(buffer));
+        android.widget.TextView text = new android.widget.TextView(this);
+        text.setText("启动失败 / START FAILED\n\n" + buffer
+                + "\n完整记录：Android/media/" + getPackageName() + "/crash.txt");
+        text.setTextColor(Color.parseColor("#7a2020"));
+        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        text.setTypeface(Typeface.MONOSPACE);
+        text.setBackgroundColor(PAPER);
+        text.setPadding(24, 64, 24, 24);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setBackgroundColor(PAPER);
+        scroll.addView(text);
+        setContentView(scroll);
+    }
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        web.saveState(outState);
+        if (web != null) web.saveState(outState);
     }
 
     @Override
@@ -163,6 +235,7 @@ public class MainActivity extends Activity {
         web.evaluateJavascript(BACK_JS, value -> {
             // "" means the page owns nothing dismissable right now, so leave.
             boolean handled = value != null && value.length() > 2 && !"null".equals(value);
+            Trace.log("back handled=" + handled + " value=" + value);
             if (!handled) finish();
         });
     }
@@ -170,17 +243,20 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        Trace.log("onPause");
         if (web != null) web.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Trace.log("onResume");
         if (web != null) web.onResume();
     }
 
     @Override
     protected void onDestroy() {
+        Trace.log("onDestroy");
         if (web != null) {
             web.setWebViewClient(null);
             web.destroy();

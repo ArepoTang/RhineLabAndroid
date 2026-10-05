@@ -53,6 +53,25 @@ jobs:
       - name: Build APK
         run: ./gradlew --no-daemon assembleRelease
 
+      - name: Inspect APK
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          ls -la "$APK"
+          echo "--- top level ---"
+          unzip -l "$APK" | head -25
+          echo "--- counts ---"
+          for p in assets/www/index.html assets/www/assets assets/www/fonts classes.dex; do
+            echo "$p: $(unzip -l "$APK" | grep -c "$p")"
+          done
+          BT=$(dirname "$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -1)")
+          echo "--- badging ---"
+          "$BT/aapt2" dump badging "$APK" | head -25
+          echo "--- manifest ---"
+          "$BT/aapt2" dump xmltree --file AndroidManifest.xml "$APK" | head -70
+          echo "--- signature ---"
+          "$BT/apksigner" verify --print-certs -v "$APK" | head -20
+
       - uses: actions/upload-artifact@v6
         with:
           name: rhinelab-apk
