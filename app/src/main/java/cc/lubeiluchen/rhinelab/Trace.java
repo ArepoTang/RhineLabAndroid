@@ -28,6 +28,7 @@ final class Trace {
     private Trace() {}
 
     static synchronized void init(Context context) {
+        if (run != null) return; // application already installed the handler
         File dir = null;
         try {
             File[] media = context.getExternalMediaDirs();

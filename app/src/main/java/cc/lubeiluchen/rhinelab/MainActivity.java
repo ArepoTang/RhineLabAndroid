@@ -64,7 +64,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Trace.init(this);
-        installCrashHandler();
         Trace.log("onCreate begin, savedInstanceState=" + (savedInstanceState != null));
         try {
             build(savedInstanceState);
@@ -73,14 +72,6 @@ public class MainActivity extends Activity {
             Trace.crash(Thread.currentThread(), error);
             showFailure(error);
         }
-    }
-
-    private void installCrashHandler() {
-        final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
-        Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
-            Trace.crash(thread, error);
-            if (previous != null) previous.uncaughtException(thread, error);
-        });
     }
 
     private void build(Bundle savedInstanceState) {
