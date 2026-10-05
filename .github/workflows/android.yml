@@ -1,0 +1,60 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout shell
+        uses: actions/checkout@v5
+
+      - name: Checkout wallpaper source
+        uses: actions/checkout@v5
+        with:
+          repository: LBEILC/RhineLabWallpaper
+          ref: main
+          path: rlw
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: rlw/package-lock.json
+
+      - name: Build web bundle
+        working-directory: rlw
+        run: |
+          npm ci
+          npm run build:wallpaper
+
+      - name: Stage assets
+        run: |
+          chmod +x scripts/prepare-web.sh
+          ./scripts/prepare-web.sh rlw/release/wallpaper
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
+        run: ./gradlew --no-daemon assembleRelease
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: rhinelab-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

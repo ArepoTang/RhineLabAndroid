@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="paper">#E8E5E1</color>
+    <string name="app_name">莱茵生命</string>
+    <string name="app_name_full">Rhine Lab · 莱茵生命交互终端</string>
+</resources>
