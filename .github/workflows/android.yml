@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-apk
@@ -77,3 +77,20 @@ jobs:
           name: rhinelab-apk
           path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      # A stable URL that a GitHub proxy can fetch from China:
+      #   https://github.com/ArepoTang/RhineLabAndroid/releases/download/latest/RhineLab-latest.apk
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cp app/build/outputs/apk/release/app-release.apk RhineLab-latest.apk
+          sha256sum RhineLab-latest.apk > RhineLab-latest.apk.sha256
+          cat RhineLab-latest.apk.sha256
+          gh release view latest >/dev/null 2>&1 \
+            || gh release create latest --title "Rhine Lab 终端（自动构建）" --notes "每次推送 main 覆盖更新。"
+          gh release upload latest RhineLab-latest.apk RhineLab-latest.apk.sha256 --clobber
+          gh release edit latest --notes "commit ${{ github.sha }}
+
+构建于 $(date -u +%Y-%m-%dT%H:%M:%SZ)"
