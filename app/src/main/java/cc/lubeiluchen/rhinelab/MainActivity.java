@@ -151,12 +151,9 @@ public class MainActivity extends Activity {
             }
 
             @Override
-            public void onReceivedError(WebView view, WebResourceRequest request,
-                                        android.webkit.WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    Trace.log("main frame error " + error.getErrorCode()
-                            + " " + error.getDescription() + " " + request.getUrl());
-                }
+            @SuppressWarnings("deprecation")
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                Trace.log("error " + errorCode + " " + description + " " + failingUrl);
             }
         });
         Trace.log("client set");
