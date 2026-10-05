@@ -12,7 +12,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        resourceConfigurations += listOf("zh", "en")
     }
 
     // A committed keystore so consecutive CI runs can upgrade over each other
