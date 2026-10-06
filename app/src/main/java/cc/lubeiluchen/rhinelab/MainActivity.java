@@ -22,8 +22,6 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
-import java.io.File;
-
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewClientCompat;
 
@@ -41,9 +39,6 @@ public class MainActivity extends Activity {
     private static final String ORIGIN = "https://appassets.androidplatform.net";
     private static final String START_URL = ORIGIN + "/assets/www/index.html";
     private static final int PAPER = 0xFFE8E5E1;
-
-    /** Tuning knobs the wallpaper build normally gets from Wallpaper Engine. */
-    private static final String HOST_FILE = "host.txt";
 
     /**
      * Lets the page consume the back gesture when it owns something dismissable.
@@ -184,43 +179,12 @@ public class MainActivity extends Activity {
         Trace.log("immersive applied");
 
         if (savedInstanceState == null) {
-            String url = START_URL + hostQuery();
-            Trace.log("loadUrl " + url);
-            web.loadUrl(url);
+            Trace.log("loadUrl " + START_URL);
+            web.loadUrl(START_URL);
         } else {
             Trace.log("restoreState");
             web.restoreState(savedInstanceState);
         }
-    }
-
-    /**
-     * Reads `key=value` lines from Android/media/<pkg>/host.txt and turns them into a
-     * query string. Lets the render tier be retuned from a terminal on the same device
-     * instead of a rebuild. Values are whitelisted because this file is not ours alone.
-     */
-    private String hostQuery() {
-        StringBuilder query = new StringBuilder();
-        try {
-            File[] media = getExternalMediaDirs();
-            if (media == null || media.length == 0) return "";
-            File file = new File(media[0], HOST_FILE);
-            if (!file.isFile()) return "";
-            try (java.io.BufferedReader in = new java.io.BufferedReader(new java.io.FileReader(file))) {
-                String line;
-                while ((line = in.readLine()) != null) {
-                    line = line.trim();
-                    int equals = line.indexOf('=');
-                    if (equals <= 0) continue;
-                    String key = line.substring(0, equals).trim();
-                    String value = line.substring(equals + 1).trim();
-                    if (!key.matches("[a-z]+") || !value.matches("[A-Za-z0-9.]+")) continue;
-                    query.append(query.length() == 0 ? '?' : '&').append(key).append('=').append(value);
-                }
-            }
-        } catch (Exception error) {
-            Trace.log("host file unreadable: " + error);
-        }
-        return query.toString();
     }
 
     /** Must run after setContentView: the insets controller needs the decor view. */

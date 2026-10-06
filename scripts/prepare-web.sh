@@ -30,25 +30,17 @@ python3 - "$DST/index.html" <<'PY'
 import sys
 path = sys.argv[1]
 html = open(path, encoding="utf-8").read()
-old = 'window.rhineWallpaperHost = { properties: {}, fps: 30, paused: false };'
-new = '''// The APK is its own wallpaper host. Upstream ships `fps: 30` with no
-// `renderquality`, i.e. the full "original" preset (pixelRatio 1.5 + AO + DoF),
-// which a phone cannot afford. Values arrive in the URL from the native shell so
-// they can be retuned from a file on the device (Android/media/<pkg>/host.txt)
-// without rebuilding.
-var host = new URLSearchParams(location.search);
-window.rhineWallpaperHost = {
-  fps: Number(host.get("fps")) || 60,
-  paused: false,
-  properties: { renderquality: { value: host.get("quality") || "performance" } },
-};
-if (host.get("precision")) window.rhineWallpaperHost.properties.modelprecision = { value: host.get("precision") };
-if (host.get("super") === "1") window.rhineWallpaperHost.properties.superperformance = { value: true };'''
-if new not in html:
-    if old not in html:
-        sys.exit("prepare-web: host shim not found in index.html; upstream changed it")
-    open(path, "w", encoding="utf-8").write(html.replace(old, new, 1))
-    print("prepare-web: host defaults -> 60 fps, performance quality, url-overridable")
+# Last classic script before the deferred module: the host shim above has already
+# created rhineWallpaperHost / wallpaperPropertyListener, the module has not read
+# them yet. host-settings.js layers the terminal's own defaults and settings panel
+# on top. See that file for why this exists at all.
+anchor = '<script type="module"'
+tag = '<script src="./host-settings.js"></script>\n    '
+if tag not in html:
+    if anchor not in html:
+        sys.exit("prepare-web: no module script tag in index.html; upstream changed it")
+    open(path, "w", encoding="utf-8").write(html.replace(anchor, tag + anchor, 1))
+    print("prepare-web: injected host-settings.js")
 PY
 
 # Launcher icon, taken from the web app's own icon set so the two stay in sync.
@@ -57,6 +49,8 @@ if [ -f "$ICON" ]; then
   mkdir -p "$ROOT/app/src/main/res/mipmap-xxxhdpi"
   cp "$ICON" "$ROOT/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
 fi
+
+cp "$ROOT/scripts/host-settings.js" "$DST/host-settings.js"
 
 FILES=$(find "$DST" -type f | wc -l | tr -d ' ')
 SIZE=$(du -sh "$DST" | cut -f1)
