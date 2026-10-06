@@ -75,8 +75,10 @@ public class MainActivity extends Activity {
     }
 
     private void build(Bundle savedInstanceState) {
-        applyImmersiveMode();
-        Trace.log("immersive applied");
+        // getWindow().getInsetsController() walks PhoneWindow.mDecor, which only
+        // exists once the decor is installed -- i.e. after setContentView().
+        getWindow().setBackgroundDrawable(new ColorDrawable(PAPER));
+        getWindow().setDecorFitsSystemWindows(false);
 
         web = new WebView(this);
         web.setBackgroundColor(PAPER);
@@ -153,6 +155,9 @@ public class MainActivity extends Activity {
         setContentView(web);
         Trace.log("content view set");
 
+        applyImmersiveMode();
+        Trace.log("immersive applied");
+
         if (savedInstanceState == null) {
             Trace.log("loadUrl " + START_URL);
             web.loadUrl(START_URL);
@@ -162,10 +167,9 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** Must run after setContentView: the insets controller needs the decor view. */
     private void applyImmersiveMode() {
         Window window = getWindow();
-        window.setBackgroundDrawable(new ColorDrawable(PAPER));
-        window.setDecorFitsSystemWindows(false);
         WindowInsetsController controller = window.getInsetsController();
         if (controller != null) {
             controller.setSystemBarsBehavior(
