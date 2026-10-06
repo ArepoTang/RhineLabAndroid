@@ -23,6 +23,9 @@ if [ ! -f "$SRC/index.html" ]; then
 fi
 
 # Flatten: everything the site serves sits at the assets root.
+# 目录可能不存在（assets 是构建产物且被 .gitignore 忽略，CI 的干净检出里没有它）。
+# 所以先建目录再清空；单靠 find 会在 CI 上以 "No such file or directory" 直接退出。
+mkdir -p "$DST"
 find "$DST" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 cp -R "$SRC/." "$DST/"
 
