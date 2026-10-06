@@ -59,6 +59,19 @@ public class MainActivity extends Activity {
     private WebView web;
     private int lastBottomInset = -1;
 
+    /** Android 12+ hides other apps' logcat, so the frame rate is polled into Trace. */
+    private static final long FPS_PROBE_MS = 5000;
+    private final Runnable fpsProbe = new Runnable() {
+        @Override
+        public void run() {
+            if (web == null) return;
+            web.evaluateJavascript("(() => { const s = document.getElementById('three-scene');"
+                    + " return s ? s.dataset.fps + ' ' + s.dataset.renderStats : 'no-scene'; })()",
+                    value -> Trace.log("fps " + value));
+            web.postDelayed(this, FPS_PROBE_MS);
+        }
+    };
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -236,14 +249,20 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         Trace.log("onPause");
-        if (web != null) web.onPause();
+        if (web != null) {
+            web.removeCallbacks(fpsProbe);
+            web.onPause();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Trace.log("onResume");
-        if (web != null) web.onResume();
+        if (web != null) {
+            web.onResume();
+            web.postDelayed(fpsProbe, FPS_PROBE_MS);
+        }
     }
 
     @Override

@@ -24,6 +24,26 @@ cp -R "$SRC/." "$DST/"
 # Store-facing files the terminal never reads, plus the local probe page.
 rm -f "$DST/project.json" "$DST/build-files.json" "$DST/preview.gif" "$DST/preview.jpg" "$DST/__probe.html"
 
+# The APK is its own wallpaper host, so the frame budget and the quality tier are
+# chosen here instead of by Wallpaper Engine. Upstream ships `fps: 30` with no
+# `renderquality`, which is the full "original" preset (pixelRatio 1.5 + AO + DoF)
+# -- too much for a phone that is fill-rate bound. Fails loudly if upstream moves
+# the shim, because a silent no-op would ship the slow defaults unnoticed.
+python3 - "$DST/index.html" <<'PY'
+import sys
+path = sys.argv[1]
+html = open(path, encoding="utf-8").read()
+old = 'window.rhineWallpaperHost = { properties: {}, fps: 30, paused: false };'
+new = ('window.rhineWallpaperHost = { properties: { renderquality: { value: "performance" } },'
+       ' fps: 60, paused: false };')
+if old not in html:
+    if new in html:
+        sys.exit(0)
+    sys.exit("prepare-web: host shim not found in index.html; upstream changed it")
+open(path, "w", encoding="utf-8").write(html.replace(old, new, 1))
+print("prepare-web: host defaults -> 60 fps, performance quality")
+PY
+
 # Launcher icon, taken from the web app's own icon set so the two stay in sync.
 ICON="$DST/icons/icon-512.png"
 if [ -f "$ICON" ]; then
