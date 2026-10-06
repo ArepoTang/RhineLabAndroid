@@ -37,7 +37,10 @@ import androidx.webkit.WebViewClientCompat;
 public class MainActivity extends Activity {
 
     private static final String ORIGIN = "https://appassets.androidplatform.net";
-    private static final String START_URL = ORIGIN + "/assets/www/index.html";
+    // dist/ 铺在 assets 根目录，所以用 "/" 前缀映射：/fonts/...、/assets/... 自然命中。
+    // 网页版构建用的是根绝对路径（字体就是 /fonts/...），换成 "./" 基线反而要改一堆 URL。
+    // host=apk 让页面跳过"点击进入"闸门：WebView 已经允许无手势播放音频。
+    private static final String START_URL = ORIGIN + "/index.html?host=apk";
     private static final int PAPER = 0xFFE8E5E1;
 
     /**
@@ -124,7 +127,7 @@ public class MainActivity extends Activity {
         Trace.log("webview settings applied");
 
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
-                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
         Trace.log("asset loader built");
 

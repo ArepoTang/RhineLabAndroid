@@ -19,29 +19,31 @@ jobs:
       - name: Checkout shell
         uses: actions/checkout@v5
 
-      - name: Checkout wallpaper source
+      # 我们自己的 fork：日历/笔记与全部改动都在这里，不再是上游的壁纸构建。
+      - name: Checkout web source
         uses: actions/checkout@v5
         with:
-          repository: LBEILC/RhineLabWallpaper
+          repository: ArepoTang/RhineLabUI
           ref: main
-          path: rlw
+          path: web
 
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: rlw/package-lock.json
+          cache-dependency-path: web/package-lock.json
 
       - name: Build web bundle
-        working-directory: rlw
+        working-directory: web
         run: |
           npm ci
-          npm run build:wallpaper
+          npm run check:entries
+          npm run build
 
       - name: Stage assets
         run: |
           chmod +x scripts/prepare-web.sh
-          ./scripts/prepare-web.sh rlw/release/wallpaper
+          ./scripts/prepare-web.sh web/dist
 
       - uses: actions/setup-java@v5
         with:
