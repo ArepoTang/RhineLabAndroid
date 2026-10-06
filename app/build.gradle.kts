@@ -22,6 +22,9 @@ android {
             storePassword = "rhinelab"
             keyAlias = "rhinelab"
             keyPassword = "rhinelab"
+            // AGP disables v1 for minSdk >= 24, but Huawei's installer rejects
+            // v2-only APKs with "解析包时出现问题". Harmless to keep v1 on.
+            enableV1Signing = true
         }
     }
 
