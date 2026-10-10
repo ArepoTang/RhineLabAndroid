@@ -131,6 +131,10 @@ public class MainActivity extends Activity {
                 .build();
         Trace.log("asset loader built");
 
+        // 导出日志的落盘端：网页把它当 window.RhineLabExport 用（没有这个接口时网页走浏览器下载）。
+        web.addJavascriptInterface(new ExportBridge(this), "RhineLabExport");
+        Trace.log("export bridge registered");
+
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage message) {
