@@ -2,7 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Everything ships in the APK; WebViewAssetLoader serves it in-process.
-         No INTERNET permission on purpose: the wallpaper never talks to a network. -->
+         INTERNET is the only network permission and it exists for one feature:
+         周报/月报/年报 生成（用户自己在设置里填服务商地址与 key 后才会发请求）。
+         其余部分（壁纸、日历、档案库）仍然完全离线；不用网络时不会去连任何地址。 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".RhineApp"
         android:allowBackup="true"

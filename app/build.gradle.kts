@@ -10,8 +10,8 @@ android {
         applicationId = "cc.lubeiluchen.rhinelab"
         minSdk = 30
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     // A committed keystore so consecutive CI runs can upgrade over each other
