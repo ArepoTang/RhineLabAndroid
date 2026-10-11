@@ -52,13 +52,23 @@ Web 层不用改。
 | Java | 17（源码级） |
 | 依赖 | 只有一个：`androidx.webkit` |
 
-## 签名
+## 包名与签名
 
-`keystore/rhinelab.jks` 与密码**刻意提交进仓库**，这样连续多次 CI 构建签名的 key 相同，
-可以直接覆盖安装而不必先卸载。这是自用 sideload 应用，不是要分发的产品。
+- 包名：`com.rhine.lab`（2026-10-11 由 `cc.lubeiluchen.rhinelab` 改来；旧包名不再维护，
+  两者在系统里是**两个不同的应用**，不会互相覆盖，数据也不共享）。
+- 签名材料**不进仓库**：`.p12` 以 base64 存进仓库 Secrets，CI 构建前解码到临时目录再喂给 Gradle。
+  本地没有这些环境变量时只出未签名包（避免拿错钥匙签出装不上的东西）。
 
-若要改成 Secrets 管理，删掉 `keystore/`，把签名配置改为读
-`System.getenv("SIGNING_*")`，并在仓库 Secrets 里放 base64 后的 keystore。
+Secrets（Actions → Secrets and variables → Actions）：
+
+| Secret | 内容 |
+|---|---|
+| `SIGNING_KEYSTORE_BASE64` | `base64 -w0 key.p12` |
+| `SIGNING_STORE_PASSWORD` | keystore 口令 |
+| `SIGNING_KEY_ALIAS` | 别名（当前是 `exported_key`） |
+| `SIGNING_KEY_PASSWORD` | key 口令（PKCS12 通常与上面相同） |
+
+换钥匙等于换应用身份：已装用户无法覆盖安装，必须卸载。
 
 ## 已知未验证项
 
