@@ -93,9 +93,10 @@ jobs:
           echo "--- manifest ---"
           "$BT/aapt2" dump xmltree --file AndroidManifest.xml "$APK" | head -70
           echo "--- signature ---"
-          "$BT/apksigner" verify --print-certs -v "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)|Verified using" | head -6
+          "$BT/apksigner" verify --print-certs -v "$APK" | grep -E "Signer #1 certificate (DN|SHA-256)|Verified using" | head -12
           echo "--- expected identity ---"
-          FPR=$("$BT/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)
+          # 注意：不带 -v 时 apksigner 校验通过就什么都不打印，指纹必须用 -v --print-certs 取。
+          FPR=$("$BT/apksigner" verify --print-certs -v "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)
           EXPECTED=341a5cd9ebd1f882ad367bc9c88d3ada0e5ce1d9fc52f2a80f470a15b5f0b76a
           if [ "$FPR" != "$EXPECTED" ]; then
             echo "::error::签名证书不是预期的那一份（实际 $FPR）"
