@@ -89,7 +89,7 @@ jobs:
           echo "--- top level ---"
           unzip -l "$APK" | head -25
           echo "--- counts ---"
-          for p in assets/www/index.html assets/www/assets assets/www/fonts classes.dex; do
+          for p in assets/index.html assets/assets assets/fonts assets/fonts/novecento classes.dex; do
             echo "$p: $(unzip -l "$APK" | grep -c "$p")"
           done
           BT=$(dirname "$(find "$ANDROID_HOME/build-tools" -name aapt2 | sort -V | tail -1)")
