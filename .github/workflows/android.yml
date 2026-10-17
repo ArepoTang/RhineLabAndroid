@@ -35,10 +35,15 @@ jobs:
 
       - name: Build web bundle
         working-directory: web
+        env:
+          # 用用户 2026-10-17 的授权把 Novecento 打进 APK（从正式站点取回并校验哈希）
+          RHINE_NOVECENTO_BUNDLE: '1'
         run: |
           npm ci
           npm run check:entries
           npm run build
+          test -f dist/fonts/novecento/webFonts/NovecentoSansWideNormal/font.woff2
+          test -f dist/fonts/novecento/webFonts/NovecentoSansWideBold/font.woff2
 
       - name: Stage assets
         run: |
